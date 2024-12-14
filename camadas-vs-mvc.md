@@ -129,3 +129,202 @@ controller.displayProduct(); // Output: Product: Laptop - $1500
 ### Conclusão
 - **Arquitetura em camadas** é mais genérica e aplicada em sistemas complexos e escaláveis.
 - **MVC e suas variações** são padrões mais específicos, ideais para organizar a lógica de UI e componentes. Ambos podem ser usados em conjunto.
+
+### Diferenças Detalhadas: Arquitetura em Camadas vs. MVC - Revisão
+
+**Arquitetura em Camadas** e **MVC** não são mutuamente exclusivos; muitas vezes, sistemas grandes integram ambos. Vamos expandir o entendimento com:
+
+- **Conceitos Chave**.
+- **Prós e Contras**.
+- **Exemplos avançados**.
+
+---
+
+### **1. Arquitetura em Camadas**
+
+#### Conceitos Chave
+1. **Separação Estrita de Responsabilidades**:
+   Cada camada tem uma responsabilidade clara:
+   - **Apresentação (UI)**: Interface do usuário (web, desktop, mobile).
+   - **Aplicação**: Orquestra fluxos de negócio.
+   - **Domínio**: Contém as regras de negócio puras.
+   - **Infraestrutura**: Faz o trabalho "sujo" como interagir com APIs, banco de dados, arquivos etc.
+
+2. **Comunicação entre Camadas**:
+   - Segue o princípio **unidirecional**. Por exemplo, a **UI** nunca acessa diretamente a **Infraestrutura**.
+
+#### Vantagens
+- **Manutenção**: Alterar uma camada geralmente não afeta outras.
+- **Escalabilidade**: Adicionar novas funcionalidades não exige retrabalho em todas as camadas.
+- **Testabilidade**: Camadas são independentes e podem ser testadas isoladamente.
+
+#### Desvantagens
+- **Overhead Inicial**: Adicionar camadas pode aumentar a complexidade para sistemas simples.
+- **Latência**: Comunicação entre camadas pode reduzir a performance.
+
+#### Exemplo Avançado com TypeScript
+Um sistema de e-commerce com persistência no banco de dados, regras de desconto e interface RESTful.
+
+```typescript
+// Camada de Infraestrutura
+class ProductRepository {
+  private products = [
+    { id: "1", name: "Laptop", price: 1500 },
+    { id: "2", name: "Smartphone", price: 800 },
+  ];
+
+  findById(id: string) {
+    return this.products.find((p) => p.id === id) || null;
+  }
+}
+
+// Camada de Domínio
+class Product {
+  constructor(public id: string, public name: string, public price: number) {}
+
+  applyDiscount(percent: number): void {
+    this.price = this.price - (this.price * percent) / 100;
+  }
+}
+
+// Camada de Aplicação
+class ProductService {
+  constructor(private repository: ProductRepository) {}
+
+  getProductWithDiscount(id: string, discount: number): Product | null {
+    const productData = this.repository.findById(id);
+    if (!productData) return null;
+    const product = new Product(productData.id, productData.name, productData.price);
+    product.applyDiscount(discount);
+    return product;
+  }
+}
+
+// Camada de Apresentação (REST Controller)
+const productService = new ProductService(new ProductRepository());
+const product = productService.getProductWithDiscount("1", 10);
+console.log(product); // { id: "1", name: "Laptop", price: 1350 }
+```
+
+---
+
+### **2. MVC (Model-View-Controller)**
+
+#### Conceitos Chave
+1. **Componentes do MVC**:
+   - **Model**:
+     - Representa os dados e a lógica de negócios.
+     - Não depende da View ou do Controller.
+   - **View**:
+     - Apresenta os dados ao usuário.
+     - Observa o **Model** e atualiza dinamicamente quando os dados mudam.
+   - **Controller**:
+     - Recebe entrada do usuário, processa e delega ao Model ou View.
+
+2. **Fluxo de Dados**:
+   - **User Input → Controller → Model**.
+   - **Model Update → View Update**.
+
+#### Vantagens
+- **Separação de Preocupações**: Componentes claramente definidos.
+- **Reatividade**: Ideal para interfaces dinâmicas (com frameworks modernos).
+
+#### Desvantagens
+- **Dependências Complexas**: Em projetos maiores, a interação entre componentes pode complicar a manutenção.
+- **Menos Modular**: Comparado à arquitetura em camadas.
+
+#### Exemplo Avançado com TypeScript
+Um sistema de tarefas com eventos de input do usuário.
+
+```typescript
+// Model
+class Task {
+  constructor(public id: string, public name: string, public completed: boolean = false) {}
+}
+
+class TaskModel {
+  private tasks: Task[] = [];
+
+  addTask(name: string) {
+    const newTask = new Task(`${this.tasks.length + 1}`, name);
+    this.tasks.push(newTask);
+  }
+
+  toggleTask(id: string) {
+    const task = this.tasks.find((task) => task.id === id);
+    if (task) task.completed = !task.completed;
+  }
+
+  getTasks(): Task[] {
+    return this.tasks;
+  }
+}
+
+// View
+class TaskView {
+  render(tasks: Task[]): void {
+    console.clear();
+    tasks.forEach((task) => {
+      console.log(`[${task.completed ? "X" : " "}] ${task.id}: ${task.name}`);
+    });
+  }
+}
+
+// Controller
+class TaskController {
+  constructor(private model: TaskModel, private view: TaskView) {}
+
+  addTask(name: string) {
+    this.model.addTask(name);
+    this.updateView();
+  }
+
+  toggleTask(id: string) {
+    this.model.toggleTask(id);
+    this.updateView();
+  }
+
+  updateView() {
+    const tasks = this.model.getTasks();
+    this.view.render(tasks);
+  }
+}
+
+// Simulação
+const model = new TaskModel();
+const view = new TaskView();
+const controller = new TaskController(model, view);
+
+controller.addTask("Learn TypeScript");
+controller.addTask("Build an MVC App");
+controller.toggleTask("1");
+```
+
+---
+
+### **Variações de MVC (Detalhadas)**
+
+1. **MVVM (Model-View-ViewModel)**:
+   - A **ViewModel** encapsula o estado e lógica da interface, expondo propriedades observáveis à **View**.
+   - Exemplos:
+     - **React com Hooks**.
+     - **Angular com Two-Way Binding**.
+
+2. **MVP (Model-View-Presenter)**:
+   - O **Presenter** é responsável por toda a lógica de apresentação, enquanto a View se concentra apenas em renderizar.
+
+3. **HMVC (Hierarchical MVC)**:
+   - Usado em sistemas grandes, onde vários MVCs menores são organizados hierarquicamente.
+
+---
+
+### **Conclusão**
+
+| **Aspecto**              | **Arquitetura em Camadas**                                  | **MVC**                                   |
+|--------------------------|-----------------------------------------------------------|------------------------------------------|
+| **Escopo**               | Estrutura de alto nível para sistemas grandes.            | Padrão focado na interação do usuário.   |
+| **Modularidade**         | Alta: separação entre camadas.                            | Média: interação intensa entre MVC.      |
+| **Usabilidade**          | Backend e lógica de negócios.                            | UI e fluxo de dados em interfaces.       |
+| **Flexibilidade**        | Melhor para sistemas complexos.                          | Melhor para UIs dinâmicas.               |
+
+Os dois podem ser combinados para um sistema mais robusto. Um exemplo comum é uma aplicação RESTful (em camadas) com front-end React (MVVM).
